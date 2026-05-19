@@ -521,7 +521,16 @@ a { text-decoration: none; color: inherit; }
 .btn:active::after { opacity: 1; }
 
 .btn--full { width: 100%; }
+.btn--semi {width: 80%;}
 
+/* Centraliza botão Aplicar Filtros com largura reduzida */
+#btnAplicar {
+  width: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: block;
+  margin: 12px auto;
+}
 /* Primário (verde) */
 .btn--primary {
   background: var(--color-primary);
