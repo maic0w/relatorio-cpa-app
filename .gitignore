@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.log
+.env
+/.vscode/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dados sensíveis / grandes
+/data/
+
+# Sistema
+Thumbs.db
+.DS_Store

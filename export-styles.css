@@ -1,0 +1,54 @@
+/* Estilos adicionais para exportação PNG com qualidade máxima */
+
+/* Força background branco na exportação */
+.report-card--exporting {
+  background-color: #ffffff !important;
+}
+
+.report-card--exporting .report-title {
+  color: #2c3e50 !important;
+}
+
+.report-card--exporting .report-stats {
+  background-color: #ffffff !important;
+}
+
+.report-card--exporting .distribution-table__header {
+  background-color: #2f9e41 !important;
+  color: #ffffff !important;
+}
+
+.report-card--exporting .distribution-table__cell {
+  background-color: #e8f5e9 !important;
+  color: #000000 !important;
+}
+
+.report-card--exporting .stats-row {
+  background-color: transparent !important;
+}
+
+.report-card--exporting .stats-row__label {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+.report-card--exporting .stats-row__value {
+  background-color: #e8f5e9 !important;
+  color: #000000 !important;
+}
+
+.report-card--exporting .approval-chip {
+  color: #ffffff !important;
+}
+
+.report-card--exporting .approval-chip--low {
+  background-color: #d32f2f !important;
+}
+
+.report-card--exporting .approval-chip--mid {
+  background-color: #f57c00 !important;
+}
+
+.report-card--exporting .approval-chip--high {
+  background-color: #2f9e41 !important;
+}

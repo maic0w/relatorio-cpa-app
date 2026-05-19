@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPA — Relatórios de Gestão</title>
+
+  <!-- Open Sans (marca oficial IFS) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+
+  <!-- Plotly.js (gráficos interativos) -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+
+  <!-- html-to-image (melhor renderização de SVG/Fonts que html2canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="../../export-styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       TITLEBAR CUSTOMIZADA (Electron drag region)
+  ═══════════════════════════════════════════════ -->
+  <header class="titlebar" id="titlebar">
+    <div class="titlebar__left">
+      <div class="titlebar__logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="9" height="9" rx="1.5" fill="var(--color-primary)"/>
+          <rect x="13" y="2" width="9" height="9" rx="1.5" fill="var(--color-primary)" opacity="0.5"/>
+          <rect x="2" y="13" width="9" height="9" rx="1.5" fill="var(--color-primary)" opacity="0.5"/>
+          <rect x="13" y="13" width="9" height="9" rx="1.5" fill="var(--color-secondary)"/>
+        </svg>
+      </div>
+      <span class="titlebar__app-name">CPA — Relatórios de Gestão</span>
+    </div>
+
+    <div class="titlebar__right">
+      <!-- Toggle de Tema -->
+      <button class="theme-toggle" id="themeToggle" title="Alternar tema" aria-label="Alternar entre tema claro e escuro">
+        <span class="theme-toggle__icon theme-toggle__icon--dark" aria-hidden="true">
+          <!-- Ícone Lua -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </span>
+        <span class="theme-toggle__icon theme-toggle__icon--light" aria-hidden="true">
+          <!-- Ícone Sol -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </span>
+        <span class="theme-toggle__label" id="themeLabel">Modo Claro</span>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════
+       LAYOUT PRINCIPAL
+  ═══════════════════════════════════════════════ -->
+  <div class="app-layout">
+
+    <!-- ─── SIDEBAR (Filtros) ─── -->
+    <aside class="sidebar" id="sidebar" aria-label="Painel de filtros">
+      
+      <div class="sidebar__header">
+        <button class="sidebar__collapse-btn" id="sidebarToggle" title="Recolher painel" aria-expanded="true" aria-controls="sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <span class="sidebar__title">Filtros</span>
+      </div>
+
+      <div class="sidebar__content" id="sidebarContent">
+        
+        <!-- Seção: Escopo -->
+        <section class="filter-section">
+          <h3 class="filter-section__label">
+            <span class="filter-section__icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              </svg>
+            </span>
+            Escopo
+          </h3>
+
+          <div class="filter-group">
+            <label class="filter-label" for="selectCategoria">Categoria</label>
+            <div class="select-wrapper">
+              <select class="filter-select" id="selectCategoria" aria-required="true">
+                <option value="">— Selecione —</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label" for="selectCampus">Campus</label>
+            <div class="select-wrapper">
+              <select class="filter-select" id="selectCampus" aria-required="true">
+                <option value="">— Geral —</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label" for="selectCurso">
+              Curso
+              <span class="filter-label__badge" id="cursoBadge" aria-live="polite">Selecione um campus</span>
+            </label>
+            <div class="select-wrapper">
+              <select class="filter-select" id="selectCurso" disabled aria-required="true">
+                <option value="">— Aguardando campus —</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <div class="sidebar__divider" aria-hidden="true"></div>
+
+        <!-- Seção: Questionário -->
+        <section class="filter-section">
+          <h3 class="filter-section__label">
+            <span class="filter-section__icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </span>
+            Questionário
+          </h3>
+
+          <div class="filter-group">
+            <label class="filter-label" for="selectPergunta">Pergunta</label>
+            <div class="select-wrapper">
+              <select class="filter-select" id="selectPergunta" aria-required="true">
+                <option value="">— Selecione —</option>
+              </select>
+              <span class="select-arrow" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <div class="sidebar__divider" aria-hidden="true"></div>
+
+        <!-- Botão Aplicar -->
+        <button class="btn btn--primary btn--full" id="btnAplicar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Aplicar Filtros
+        </button>
+
+        <div class="sidebar__divider" aria-hidden="true"></div>
+
+        <!-- Seção: Exportação -->
+        <section class="filter-section">
+          <h3 class="filter-section__label">
+            <span class="filter-section__icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </span>
+            Exportação em Lote
+          </h3>
+
+          <button class="btn btn--export btn--full" id="btnExportZipRelatorio">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+            Relatório Completo (ZIP)
+          </button>
+
+          <button class="btn btn--export btn--full" id="btnExportZipGraficos" style="margin-top: 8px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="3 9 9 9 9 21"/><polyline points="9 9 15 4 15 21"/>
+            </svg>
+            Gráficos da Categoria (ZIP)
+          </button>
+        </section>
+
+        <!-- Status da última sincronização -->
+        <div class="sidebar__status">
+          <span class="status-dot status-dot--ok" aria-hidden="true"></span>
+          <span id="syncStatus">Dados sincronizados • Ciclo 2025</span>
+        </div>
+
+      </div><!-- /sidebar__content -->
+    </aside>
+
+    <!-- ─── ÁREA PRINCIPAL ─── -->
+    <main class="main-content" id="mainContent" role="main">
+
+      <!-- Estado vazio (padrão ao abrir) -->
+      <div class="empty-state" id="emptyState" aria-live="polite">
+        <div class="empty-state__illustration" aria-hidden="true">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <rect x="10" y="30" width="12" height="36" rx="2" fill="var(--color-primary)" opacity="0.3"/>
+            <rect x="26" y="20" width="12" height="46" rx="2" fill="var(--color-primary)" opacity="0.5"/>
+            <rect x="42" y="10" width="12" height="56" rx="2" fill="var(--color-primary)" opacity="0.7"/>
+            <rect x="58" y="24" width="12" height="42" rx="2" fill="var(--color-primary)" opacity="0.9"/>
+            <line x1="6" y1="68" x2="74" y2="68" stroke="var(--border-color)" stroke-width="2"/>
+          </svg>
+        </div>
+        <h2 class="empty-state__title">Nenhum relatório carregado</h2>
+        <p class="empty-state__desc">Selecione os filtros no painel lateral e clique em <strong>Aplicar Filtros</strong> para gerar o relatório de gestão.</p>
+        <div class="empty-state__steps" aria-label="Passos para gerar relatório">
+          <div class="step">
+            <span class="step__num" aria-hidden="true">1</span>
+            <span class="step__text">Selecione Categoria, Campus e Curso</span>
+          </div>
+          <div class="step__arrow" aria-hidden="true">→</div>
+          <div class="step">
+            <span class="step__num" aria-hidden="true">2</span>
+            <span class="step__text">Escolha uma Pergunta</span>
+          </div>
+          <div class="step__arrow" aria-hidden="true">→</div>
+          <div class="step">
+            <span class="step__num" aria-hidden="true">3</span>
+            <span class="step__text">Clique em Aplicar Filtros</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Área do Card de Relatório (oculto inicialmente) -->
+      <div class="report-wrapper" id="reportWrapper" hidden aria-live="polite">
+
+        <!-- Barra de contexto (breadcrumb + metadados) -->
+        <div class="report-context-bar">
+          <nav class="breadcrumb" aria-label="Contexto do relatório">
+            <span class="breadcrumb__item" id="bcCategoria">—</span>
+            <span class="breadcrumb__sep" aria-hidden="true">/</span>
+            <span class="breadcrumb__item" id="bcCampus">—</span>
+            <span class="breadcrumb__sep" aria-hidden="true">/</span>
+            <span class="breadcrumb__item breadcrumb__item--active" id="bcCurso">—</span>
+          </nav>
+          <div class="report-meta">
+            <span class="meta-chip">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Ciclo 2025
+            </span>
+            <span class="meta-chip">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span id="metaRespondentes">0</span> respondentes
+            </span>
+          </div>
+        </div>
+
+        <!-- ╔══════════════════════════════════════════╗
+             ║   CARD DE RELATÓRIO (exportável)         ║
+             ╚══════════════════════════════════════════╝ -->
+        <article class="report-card" id="reportCard" aria-label="Card de relatório exportável">
+
+          <!-- Cabeçalho do Card -->
+          <header class="report-card__header">
+            <div class="report-card__header-left">
+              <div class="report-card__badge" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <div>
+                <span class="report-card__pretitle">Pergunta Avaliada</span>
+                <h2 class="report-card__title" id="reportTitle">—</h2>
+              </div>
+            </div>
+            <div class="report-card__header-right">
+              <div class="ifs-logo-mark" aria-label="Instituto Federal de Sergipe" title="IFS">
+                <span class="ifs-logo-mark__text">IFS</span>
+                <span class="ifs-logo-mark__divider"></span>
+                <span class="ifs-logo-mark__sub">CPA</span>
+              </div>
+            </div>
+          </header>
+
+          <!-- Área do Gráfico Plotly -->
+          <div class="report-card__chart-container">
+            <div class="chart-loading" id="chartLoading" aria-live="polite">
+              <div class="chart-loading__spinner" aria-hidden="true"></div>
+              <span>Gerando visualização…</span>
+            </div>
+            <div id="plotlyChart" class="plotly-chart" role="img" aria-label="Gráfico de barras com distribuição das respostas"></div>
+          </div>
+
+          <!-- Tabela de Distribuição -->
+          <div class="report-card__stats">
+            <h3 class="stats-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M12 2v20M2 12h20"/>
+              </svg>
+              Distribuição
+            </h3>
+            <div class="distribution-table" role="table" aria-label="Tabela de distribuição de frequências">
+              <div class="distribution-table__header" role="row">
+                <div role="columnheader" class="distribution-table__cell distribution-table__cell--header">Conceito (X)</div>
+                <div role="columnheader" class="distribution-table__cell distribution-table__cell--header">Frequência absoluta (fi)</div>
+                <div role="columnheader" class="distribution-table__cell distribution-table__cell--header">Frequência relativa (fi%)</div>
+                <div role="columnheader" class="distribution-table__cell distribution-table__cell--header">Frequência acumulada (Fi)</div>
+                <div role="columnheader" class="distribution-table__cell distribution-table__cell--header">Frequência relativa acumulada (Fi%)</div>
+              </div>
+              <div class="distribution-table__body" id="distributionTableBody" role="rowgroup">
+                <!-- Preenchido dinamicamente -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabela de Estatísticas -->
+          <div class="report-card__stats">
+            <h3 class="stats-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+              </svg>
+              Estatísticas
+            </h3>
+            <div class="stats-grid" role="table" aria-label="Estatísticas descritivas do questionário">
+              <div class="stats-grid__header" role="row">
+                <div role="columnheader">Medida</div>
+                <div role="columnheader">Resultado</div>
+              </div>
+              <div class="stats-grid__body" id="statsBody" role="rowgroup">
+                <!-- Preenchido dinamicamente pelo app.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Campo de Análise/Comentário -->
+          <div class="report-card__analysis">
+            <div class="analysis__header">
+              <label class="analysis__label" for="analysisTextarea">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+                Análise Qualitativa / Comentário CPA
+              </label>
+              <span class="analysis__char-count" id="charCount" aria-live="polite">0 / 1000</span>
+            </div>
+            <textarea 
+              class="analysis__textarea" 
+              id="analysisTextarea" 
+              placeholder="Selecione uma pergunta para exibir o enquadramento no SINAES (Eixo e Dimensão). Use este campo para registrar análise, fragilidades e ações de melhoria."
+              maxlength="1000"
+              rows="5"
+              aria-describedby="charCount"
+            ></textarea>
+          </div>
+
+          <!-- Rodapé do Card -->
+          <footer class="report-card__footer">
+            <div class="report-card__footer-info">
+              <span id="footerMeta">Gerado em <span id="footerDate">—</span></span>
+            </div>
+          </footer>
+
+        </article>
+        <!-- /report-card -->
+
+        <!-- Botão de Download (fora do card para não aparecer na imagem) -->
+        <div class="download-bar">
+          <div class="download-bar__info">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>O download captura o card completo (título + gráfico + tabela + comentário) como PNG</span>
+          </div>
+          <button class="btn btn--download" id="btnDownloadPng">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Baixar este Relatório (PNG)
+          </button>
+        </div>
+
+      </div><!-- /report-wrapper -->
+
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       TOAST DE NOTIFICAÇÕES
+  ═══════════════════════════════════════════════ -->
+  <div class="toast-container" id="toastContainer" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- ═══════════════════════════════════════════════
+       LOADER GLOBAL (operações pesadas)
+  ═══════════════════════════════════════════════ -->
+  <div class="global-loader" id="globalLoader" hidden aria-hidden="true">
+    <div class="global-loader__content">
+      <div class="global-loader__ring" aria-hidden="true"></div>
+      <p class="global-loader__text" id="loaderText">Processando…</p>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

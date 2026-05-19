@@ -1,0 +1,38 @@
+{
+  "name": "relatorio-cpa",
+  "version": "1.0.0",
+  "description": "Relatórios de Gestão da CPA - IFS",
+  "main": "src/backend/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "keywords": ["cpa", "ifs", "electron", "dados"],
+  "author": "Michael Santos",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "plotly.js-dist": "^3.5.0"
+  },
+  "build": {
+    "appId": "br.edu.ifs.cpa",
+    "productName": "Relatorios CPA",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "extraResources": [
+      {
+        "from": "data",
+        "to": "data"
+      }
+    ]
+  }
+}
