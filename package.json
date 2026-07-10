@@ -5,7 +5,7 @@
   "main": "src/backend/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder --win nsis"
   },
   "keywords": ["cpa", "ifs", "electron", "dados"],
   "author": "Michael Santos",
@@ -34,12 +34,6 @@
       "allowToChangeInstallationDirectory": true,
       "runAfterFinish": true,
       "createDesktopShortcut": true
-    },
-    "extraResources": [
-      {
-        "from": "data",
-        "to": "data"
-      }
-    ]
+    }  
   }
 }
