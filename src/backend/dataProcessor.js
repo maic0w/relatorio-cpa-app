@@ -2,6 +2,35 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const { MAPA_CATEGORIAS_NORMALIZADAS } = require('./constants');
 
+function normalizarCabecalho(chave) {
+    return String(chave || '')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+\?/g, '?')
+        .replace(/\s+,/g, ',')
+        .trim();
+}
+
+function extrairCampoPorNome(linha, nomesParciais = []) {
+    const entries = Object.entries(linha || {});
+    for (const [chave, valor] of entries) {
+        const chaveLower = String(chave).toLowerCase();
+        if (nomesParciais.some((nome) => chaveLower.includes(nome))) {
+            return valor;
+        }
+    }
+    return '';
+}
+
+function extrairCampoPorPredicado(linha, predicado) {
+    for (const [chave, valor] of Object.entries(linha || {})) {
+        if (predicado(String(chave).toLowerCase())) {
+            return valor;
+        }
+    }
+    return '';
+}
+
 // Equivalente ao normalizar_texto() do Python
 function normalizarTexto(texto) {
     if (!texto) return "";
@@ -17,15 +46,42 @@ function normalizarTexto(texto) {
 async function carregarBase(caminho, tipo) {
     return new Promise((resolve, reject) => {
         const resultados = [];
-        fs.createReadStream(caminho)
-            .pipe(csv({ separator: ',' }))
+        const readStream = fs.createReadStream(caminho);
+        const parser = csv({ separator: ',' });
+
+        // Trata erro de arquivo inexistente/permissão no stream de origem.
+        readStream.on('error', (err) => reject(err));
+
+        readStream
+            .pipe(parser)
             .on('data', (data) => {
-                let linha = { ...data };
+                const linha = {};
+
+                // Normaliza cabeçalhos para reduzir diferenças entre arquivos CSV.
+                for (const [chave, valor] of Object.entries(data || {})) {
+                    linha[normalizarCabecalho(chave)] = valor;
+                }
                 
-                // Exemplo simplificado do tratamento base comum
+                // Define campos de escopo por tipo para permitir filtros de campus/curso.
                 if (tipo === 'discentes') {
-                    linha['curso'] = linha['Curso do discente'] ? linha['Curso do discente'].split(" - ")[0].trim() : 'Geral';
-                    linha['campus'] = linha['Curso do discente'] ? linha['Curso do discente'].split(" - ")[1]?.trim() : 'Geral';
+                    const cursoDiscente = extrairCampoPorPredicado(linha, (k) => k.startsWith('curso do discente'));
+                    if (cursoDiscente && String(cursoDiscente).includes(' - ')) {
+                        linha['curso'] = String(cursoDiscente).split(' - ')[0].trim() || 'Geral';
+                        linha['campus'] = String(cursoDiscente).split(' - ')[1]?.trim() || 'Geral';
+                    } else {
+                        linha['curso'] = cursoDiscente ? String(cursoDiscente).trim() : 'Geral';
+                        linha['campus'] = extrairCampoPorPredicado(linha, (k) => k.includes('campus')) || 'Geral';
+                    }
+                }
+
+                if (tipo === 'docentes') {
+                    linha['campus'] = (extrairCampoPorPredicado(linha, (k) => k === 'campus alocado' || k.startsWith('campus alocado')) || 'Geral').toString().trim();
+                    linha['curso'] = (extrairCampoPorPredicado(linha, (k) => k.startsWith('curso alocado')) || 'Geral').toString().trim();
+                }
+
+                if (tipo === 'tecnicos') {
+                    linha['campus'] = (extrairCampoPorPredicado(linha, (k) => k.includes('campus')) || 'Geral').toString().trim();
+                    linha['curso'] = (extrairCampoPorPredicado(linha, (k) => k.startsWith('curso alocado')) || 'Geral').toString().trim() || 'Geral';
                 }
                 
                 // Normaliza colunas que parecem ser perguntas (começam com número)
@@ -48,7 +104,7 @@ function calcularFrequencia(dados, pergunta, filtros) {
     if (filtros.campus && filtros.campus !== 'Geral') {
         filtrados = filtrados.filter(d => d.campus === filtros.campus);
     }
-    if (filtros.curso && filtros.curso !== 'Todos os cursos') {
+    if (filtros.curso && filtros.curso !== 'Todos os cursos' && filtros.curso !== 'Geral') {
         filtrados = filtrados.filter(d => d.curso === filtros.curso);
     }
 
