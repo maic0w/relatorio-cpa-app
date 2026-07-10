@@ -192,7 +192,12 @@ function setupEventListeners() {
     DOM.selectPergunta?.addEventListener('change', atualizarComentarioPadraoCPA);
 
     // Textarea Contagem
-    DOM.analysisTextarea?.addEventListener('input', atualizarContadorCaracteres);
+    DOM.analysisTextarea?.addEventListener('focus', preencherComentarioPadraoAoFocar);
+    DOM.analysisTextarea?.addEventListener('click', preencherComentarioPadraoAoFocar);
+    DOM.analysisTextarea?.addEventListener('input', () => {
+        marcarEstadoComentarioAutomatico();
+        atualizarContadorCaracteres();
+    });
 
     // Ações Principais
     DOM.btnAplicar?.addEventListener('click', gerarRelatorio);
@@ -512,7 +517,45 @@ function atualizarComentarioPadraoCPA() {
 
     const categoria = DOM.selectCategoria?.value || '';
     const pergunta = DOM.selectPergunta?.value || '';
-    DOM.analysisTextarea.placeholder = obterTextoComentarioCPA(categoria, pergunta);
+    const comentarioPadrao = obterTextoComentarioCPA(categoria, pergunta);
+    const comentarioPadraoAnterior = DOM.analysisTextarea.dataset.comentarioPadraoAtual || '';
+    const comentarioFoiAutoPreenchido = DOM.analysisTextarea.dataset.autoPreenchido === 'true';
+
+    DOM.analysisTextarea.placeholder = comentarioPadrao;
+    DOM.analysisTextarea.dataset.comentarioPadraoAtual = comentarioPadrao;
+
+    // Mantém o texto sincronizado apenas quando ainda é o texto automático anterior.
+    if (comentarioFoiAutoPreenchido && DOM.analysisTextarea.value === comentarioPadraoAnterior) {
+        DOM.analysisTextarea.value = comentarioPadrao;
+    }
+
+    marcarEstadoComentarioAutomatico();
+    atualizarContadorCaracteres();
+}
+
+function preencherComentarioPadraoAoFocar() {
+    if (!DOM.analysisTextarea) return;
+
+    if (DOM.analysisTextarea.value.trim()) {
+        return;
+    }
+
+    const categoria = DOM.selectCategoria?.value || '';
+    const pergunta = DOM.selectPergunta?.value || '';
+    const comentarioPadrao = DOM.analysisTextarea.dataset.comentarioPadraoAtual || obterTextoComentarioCPA(categoria, pergunta);
+
+    DOM.analysisTextarea.value = comentarioPadrao;
+    DOM.analysisTextarea.dataset.comentarioPadraoAtual = comentarioPadrao;
+    DOM.analysisTextarea.dataset.autoPreenchido = 'true';
+
+    atualizarContadorCaracteres();
+}
+
+function marcarEstadoComentarioAutomatico() {
+    if (!DOM.analysisTextarea) return;
+
+    const comentarioPadrao = DOM.analysisTextarea.dataset.comentarioPadraoAtual || '';
+    DOM.analysisTextarea.dataset.autoPreenchido = DOM.analysisTextarea.value === comentarioPadrao ? 'true' : 'false';
 }
 
 // ==========================================
@@ -859,6 +902,9 @@ async function aplicarRelatorioNaInterface(relatorio) {
 
     if (DOM.analysisTextarea) {
         DOM.analysisTextarea.placeholder = relatorio.comentarioPadrao;
+        DOM.analysisTextarea.dataset.comentarioPadraoAtual = relatorio.comentarioPadrao;
+        marcarEstadoComentarioAutomatico();
+        atualizarContadorCaracteres();
     }
 
     renderizarGraficoPlotly(
