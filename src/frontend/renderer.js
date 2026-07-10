@@ -226,7 +226,20 @@ async function inicializarDadosEControles() {
     await inicializarConstantesUI();
     const carregouUsuario = await carregarDadosUsuario();
     if (!carregouUsuario) {
-        await carregarBasesDados();
+        await solicitarPastaDadosInicial();
+    }
+}
+
+async function solicitarPastaDadosInicial() {
+    showToast('Primeiro acesso: selecione a pasta com os CSVs no Gerenciar Dados.', 'info');
+
+    const selecionou = await selecionarEGerenciarDados({
+        primeiraExecucao: true,
+        mostrarToastSucesso: true,
+    });
+
+    if (!selecionou) {
+        showToast('Nenhuma pasta de dados configurada. Selecione em "Gerenciar Dados" para carregar os CSVs.', 'warn');
     }
 }
 
@@ -304,43 +317,63 @@ function criarBotaoGerenciarDados() {
     document.body.appendChild(btn);
 }
 
-async function selecionarEGerenciarDados() {
+async function selecionarEGerenciarDados(opcoes = {}) {
+    const { primeiraExecucao = false, mostrarToastSucesso = true } = opcoes;
+
     try {
         console.log('[DADOS DEBUG] Iniciando seleção/gerenciamento de dados...');
         const resultado = await window.api.selecionarArquivosDados();
         console.log('[DADOS DEBUG] Retorno selecionarArquivosDados:', resultado);
-        if (!resultado || resultado.canceled) return;
+        if (!resultado || resultado.canceled) return false;
 
         if (resultado.error) {
             throw new Error(resultado.error);
         }
 
         if (!Array.isArray(resultado.filePaths) || !resultado.filePaths.length) {
-            showToast('A pasta selecionada não possui arquivos CSV.', 'warn');
-            return;
+            showToast(
+                primeiraExecucao
+                    ? 'A pasta selecionada está vazia ou sem CSV. Nenhum dado foi carregado.'
+                    : 'A pasta selecionada não possui arquivos CSV. Caminho atual mantido.',
+                'warn'
+            );
+            return false;
         }
 
-        const mapping = obterMappingDadosSalvo();
-        console.log('[DADOS DEBUG] Mapping antes do merge:', mapping);
+        const mapping = resultado.mapping || {};
+        console.log('[DADOS DEBUG] Novo mapping selecionado:', mapping);
 
-        Object.assign(mapping, resultado.mapping || {});
-        console.log('[DADOS DEBUG] Mapping após merge automático:', mapping);
+        const possuiAlgumMapeamento = Boolean(mapping.discentes || mapping.docentes || mapping.tecnicos);
+        if (!possuiAlgumMapeamento) {
+            showToast('Nenhum CSV compatível foi identificado. Use nomes contendo disc/doc/tec.', 'warn');
+            return false;
+        }
 
         if (!mapping.discentes || !mapping.docentes || !mapping.tecnicos) {
             console.warn('[DADOS DEBUG] Mapping incompleto:', mapping);
             showToast('Não foi possível mapear todos os tipos. Use nomes contendo disc/doc/tec nos CSVs.', 'warn');
         }
 
-        // Persist mapping
+        // Persist mapping substituindo completamente o caminho anterior.
         localStorage.setItem('cpa_data_paths', JSON.stringify(mapping));
         console.log('[DADOS DEBUG] Mapping persistido com sucesso.');
 
-        // Recarrega dados usando os novos arquivos
+        // Limpa estado atual e recarrega dados usando os novos arquivos selecionados.
+        appState.dados.discentes = [];
+        appState.dados.docentes = [];
+        appState.dados.tecnicos = [];
+
         await carregarDadosUsuario();
-        showToast(`Pasta de dados carregada: ${resultado.folderPath || 'selecionada'}`, 'success');
+
+        if (mostrarToastSucesso) {
+            showToast(`Pasta de dados carregada: ${resultado.folderPath || 'selecionada'}`, 'success');
+        }
+
+        return true;
     } catch (e) {
         console.error('Erro ao selecionar/gerenciar dados:', e);
         showToast(`Erro ao carregar pasta: ${e.message || 'erro desconhecido'}`, 'error');
+        return false;
     }
 }
 
