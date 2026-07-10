@@ -31,25 +31,22 @@ function extrairCampoPorPredicado(linha, predicado) {
     return '';
 }
 
-// Equivalente ao normalizar_texto() do Python
 function normalizarTexto(texto) {
     if (!texto) return "";
     let limpo = texto.toString()
-        .replace(/^\s*[\wÀ-ÿ]+\s*[-.]\s*/, "") // Remove prefixos numéricos
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Remove acentos
+        .replace(/^\s*[\wÀ-ÿ]+\s*[-.]\s*/, "")
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
         .trim().toLowerCase();
     
     return MAPA_CATEGORIAS_NORMALIZADAS[limpo] || texto;
 }
 
-// Extrai e limpa os dados simulando o ETL do Pandas
 async function carregarBase(caminho, tipo) {
     return new Promise((resolve, reject) => {
         const resultados = [];
         const readStream = fs.createReadStream(caminho);
         const parser = csv({ separator: ',' });
 
-        // Trata erro de arquivo inexistente/permissão no stream de origem.
         readStream.on('error', (err) => reject(err));
 
         readStream
@@ -57,12 +54,10 @@ async function carregarBase(caminho, tipo) {
             .on('data', (data) => {
                 const linha = {};
 
-                // Normaliza cabeçalhos para reduzir diferenças entre arquivos CSV.
                 for (const [chave, valor] of Object.entries(data || {})) {
                     linha[normalizarCabecalho(chave)] = valor;
                 }
                 
-                // Define campos de escopo por tipo para permitir filtros de campus/curso.
                 if (tipo === 'discentes') {
                     const cursoDiscente = extrairCampoPorPredicado(linha, (k) => k.startsWith('curso do discente'));
                     if (cursoDiscente && String(cursoDiscente).includes(' - ')) {
@@ -84,7 +79,6 @@ async function carregarBase(caminho, tipo) {
                     linha['curso'] = (extrairCampoPorPredicado(linha, (k) => k.startsWith('curso alocado')) || 'Geral').toString().trim() || 'Geral';
                 }
                 
-                // Normaliza colunas que parecem ser perguntas (começam com número)
                 for (let chave in linha) {
                     if (/^\d+\./.test(chave)) {
                         linha[chave] = normalizarTexto(linha[chave]);
@@ -97,7 +91,6 @@ async function carregarBase(caminho, tipo) {
     });
 }
 
-// Equivalente ao avaliacao_form() - conta frequências
 function calcularFrequencia(dados, pergunta, filtros) {
     let filtrados = dados;
     
@@ -117,7 +110,6 @@ function calcularFrequencia(dados, pergunta, filtros) {
     return Object.keys(contagem).map(k => ({ resposta: k, quantidade: contagem[k] }));
 }
 
-// Mapa de scores para cada conceito (conforme plotfunc.py)
 const MAPA_SCORES = {
     "Ótimo": 5,
     "Bom": 4,
@@ -138,24 +130,19 @@ const ORDEM_CONCEITOS_JS = [
     "Não sei avaliar",
 ];
 
-// Classifica o índice de aprovação conforme critérios da CPA
 function classificarIndicadorAprovacao(valor) {
     if (valor < 50) return "Fragilidade";
     if (valor <= 70) return "Ponto a melhorar";
     return "Potencialidade";
 }
 
-// Calcula estatísticas e retorna as duas tabelas (Distribuição e Estatísticas)
 function calcularEstatisticas(frequencias) {
-    // Reordena de acordo com ORDEM_CONCEITOS_JS
     const frequenciasOrdenadas = ORDEM_CONCEITOS_JS.map(conceito => 
         frequencias.find(f => f.resposta === conceito) || { resposta: conceito, quantidade: 0 }
     );
 
-    // Tabela 1: DISTRIBUIÇÃO
     const totalN = frequenciasOrdenadas.reduce((sum, f) => sum + f.quantidade, 0);
     
-    // Calcula as frequências relativas e acumuladas
     let frequenciaAcumulada = 0;
     const distribuicao = frequenciasOrdenadas.map(f => {
         const fi = f.quantidade;
@@ -172,24 +159,21 @@ function calcularEstatisticas(frequencias) {
         };
     });
 
-        // Adiciona linha TOTAL na tabela de distribuição
-        distribuicao.push({
-            conceito: "TOTAL",
-            fi: totalN,
-            frPercent: "100.00%",
-            Fi: "—",
-            FiPercent: "—"
-        });
+    distribuicao.push({
+        conceito: "TOTAL",
+        fi: totalN,
+        frPercent: "100.00%",
+        Fi: "—",
+        FiPercent: "—"
+    });
 
-    // Tabela 2: ESTATÍSTICAS
-    // Calcula dados válidos (exclui "Não sei avaliar" que tem xi = -1)
     const frequenciasValidas = frequenciasOrdenadas
         .map(f => ({
             resposta: f.resposta,
             quantidade: f.quantidade,
             xi: MAPA_SCORES[f.resposta]
         }))
-        .filter(f => f.xi >= 0); // Exclui Não sei avaliar
+        .filter(f => f.xi >= 0);
 
     const nValidos = frequenciasValidas.reduce((sum, f) => sum + f.quantidade, 0);
 
@@ -209,17 +193,14 @@ function calcularEstatisticas(frequencias) {
         };
     }
 
-    // 1. MODA - valor com maior frequência
     const modaObj = frequenciasValidas.reduce((max, f) => 
         f.quantidade > max.quantidade ? f : max
     );
     const moda = modaObj.xi;
 
-    // 2. MÉDIA
     const somaXiFi = frequenciasValidas.reduce((sum, f) => sum + (f.xi * f.quantidade), 0);
     const media = somaXiFi / nValidos;
 
-    // 3. MEDIANA
     let mediana;
     const frequenciasAcum = [];
     let acum = 0;
@@ -239,25 +220,20 @@ function calcularEstatisticas(frequencias) {
         mediana = (val1 + val2) / 2;
     }
 
-    // 4. VARIÂNCIA (usando n-1, variância amostral)
     const somaDesvioQuadrado = frequenciasValidas.reduce((sum, f) => {
         return sum + (f.quantidade * Math.pow(f.xi - media, 2));
     }, 0);
     const variancia = somaDesvioQuadrado / (nValidos - 1);
 
-    // 5. DESVIO PADRÃO
     const desviaoPadrao = Math.sqrt(variancia);
 
-    // 6. COEFICIENTE DE VARIAÇÃO
     const coeficienteVariacao = media > 0 ? ((desviaoPadrao / media) * 100) : 0;
 
-    // 7. ÍNDICE DE APROVAÇÃO (xi = 4 ou 5)
     const aprovados = frequenciasValidas
         .filter(f => f.xi === 4 || f.xi === 5)
         .reduce((sum, f) => sum + f.quantidade, 0);
     const indiceAprovacao = (aprovados / nValidos) * 100;
 
-    // 8. INDICADOR DE APROVAÇÃO
     const indicadorAprovacao = classificarIndicadorAprovacao(indiceAprovacao);
 
     const estatisticas = [

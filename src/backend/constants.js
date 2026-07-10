@@ -1,4 +1,3 @@
-
 const CATEGORIAS = ["Discentes", "Docentes", "Técnicos Administrativos", "Campus", "Cursos"];
 const FUNCOES = ["Discentes", "Docentes", "Técnicos Administrativos"];
 
